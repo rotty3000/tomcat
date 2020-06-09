@@ -12,22 +12,29 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-Automatic-Module-Name: org.apache.tomcat.embed.jasper
+
+-include: build-defaults.bnd, manifest-defaults.bnd
+
 Bundle-Name: tomcat-embed-jasper
 Bundle-SymbolicName: org.apache.tomcat-embed-jasper
-Bundle-Version: ${version_cleanup;@VERSION@}
 Export-Package: \
-    jakarta.servlet.jsp,\
-    jakarta.servlet.jsp.el,\
-    jakarta.servlet.jsp.resources,\
-    jakarta.servlet.jsp.tagext,\
-    org.apache.jasper,\
-    org.apache.jasper.compiler,\
-    org.apache.jasper.compiler.tagplugin,\
-    org.apache.jasper.el,\
-    org.apache.jasper.runtime,\
-    org.apache.jasper.security,\
-    org.apache.jasper.servlet,\
-    org.apache.jasper.tagplugins.jstl,\
-    org.apache.jasper.tagplugins.jstl.core,\
-    org.apache.jasper.util
+    jakarta.servlet.jsp.*;version=${jsp.spec.version},\
+    org.apache.jasper.*
+
+Import-Package: \
+	org.apache.tools.ant.*;resolution:=optional,\
+	*
+
+Provide-Capability: \
+	osgi.contract;\
+		osgi.contract=JavaJSP;\
+		version:Version=${jsp.spec.version};\
+		uses:='${packages;NAMED;jakarta.servlet.jsp.*}'
+
+-includeresource.meta-inf: /META-INF/=../META-INF/jasper.jar/
+-includeresource.graal=\
+	META-INF/native-image/org.apache.tomcat.embed/tomcat-embed-jasper=${basedir}/res/graal/tomcat-embed-jasper/native-image
+
+-fixupmessages: Split package...
+-jpms-module-info: org.apache.tomcat.embed.jasper;version=${Bundle-Version}
+-jpms-module-info-options: org.apache.tomcat.embed.jasper;substitute=tomcat-embed-jasper

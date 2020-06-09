@@ -13,12 +13,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
--include: build-defaults.bnd, manifest-defaults.bnd
-
-Bundle-Name: tomcat-ssi
-Bundle-SymbolicName: org.apache.tomcat-ssi
-Export-Package: \
-    org.apache.catalina.ssi
-
--jpms-module-info: ${module.name};version=${Bundle-Version}
--jpms-module-info-options: ${module.name};substitute=catalina-ssi
+Specification-Title: Apache Tomcat
+Specification-Version: ${version.major.minor}
+Specification-Vendor: Apache Software Foundation
+Implementation-Title: Apache Tomcat
+Implementation-Version: ${version}
+Implementation-Vendor: Apache Software Foundation

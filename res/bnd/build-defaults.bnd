@@ -13,12 +13,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
--include: build-defaults.bnd, manifest-defaults.bnd
+Bundle-Version: ${version_cleanup;${version}}
 
-Bundle-Name: tomcat-ssi
-Bundle-SymbolicName: org.apache.tomcat-ssi
-Export-Package: \
-    org.apache.catalina.ssi
+X-Compile-Source-JDK: ${compile.source}
+X-Compile-Target-JDK: ${compile.target}
 
--jpms-module-info: ${module.name};version=${Bundle-Version}
--jpms-module-info-options: ${module.name};substitute=catalina-ssi
+module.name: org.apache.${replace;${Bundle-Name};-;.}
+
+-includeresource.notice: META-INF/NOTICE;literal="${replace;${cat;../META-INF/default.notice};@YEAR@;${year}}"
+-includeresource.license: {META-INF/LICENSE=../META-INF/default.license}
+
+-noclassforname: true

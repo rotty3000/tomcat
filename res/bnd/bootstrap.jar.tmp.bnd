@@ -11,26 +11,20 @@
 # distributed under the License is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
-# limitations under the License.q
+# limitations under the License.
 
 -include: build-defaults.bnd, manifest-defaults.bnd
 
-Bundle-Name: tomcat-embed-jasper-el
-Bundle-SymbolicName: org.apache.tomcat-embed-jasper-el
-Export-Package: \
-    jakarta.el;version=${el.spec.version},\
-    org.apache.el.*
+Bundle-Name: tomcat-bootstrap
+Bundle-SymbolicName: org.apache.tomcat-bootstrap
+-includepackage: \
+    org.apache.catalina.startup,\
+    org.apache.catalina.security,\
+    org.apache.catalina.webresources.war.*,\
+    org.apache.tomcat.util.*
 
-Provide-Capability: \
-	osgi.contract;\
-		osgi.contract=JavaEL;\
-		version:Version=${el.spec.version};\
-		uses:='${packages;NAMED;jakarta.el.*}'
+Main-Class: org.apache.catalina.startup.Bootstrap
+Class-Path: commons-daemon.jar
 
--includeresource.meta-inf: /META-INF/=../META-INF/jasper-el.jar/
--includeresource.graal=\
-	META-INF/native-image/org.apache.tomcat.embed/tomcat-embed-el=${basedir}/res/graal/tomcat-embed-el/native-image
-
--fixupmessages: Split package...
--jpms-module-info: org.apache.tomcat.embed.jasper.el;version=${Bundle-Version}
--jpms-module-info-options: org.apache.tomcat.embed.jasper.el;substitute=tomcat-embed-el
+-jpms-module-info: ${module.name};version=${Bundle-Version}
+-jpms-module-info-options: ${module.name};substitute=bootstrap

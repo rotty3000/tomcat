@@ -73,7 +73,7 @@
   <property name="tomcat.home"           value="${basedir}"/>
   <property name="tomcat-nb.home"        value="${basedir}/nbproject" />
   <property name="tomcat.output"         value="${basedir}/output"/>
-  <property name="tomcat.bnd"            value="${tomcat.output}/bnd"/>
+  <property name="tomcat.bnd"            value="${basedir}/res/bnd"/>
   <property name="tomcat.build"          value="${tomcat.output}/build"/>
   <property name="tomcat.classes"        value="${tomcat.output}/classes"/>
   <property name="tomcat.deployer"       value="${tomcat.output}/deployer"/>
@@ -375,6 +375,7 @@
     <include name="org/apache/catalina/startup/Tool.*" />
     <include name="org/apache/catalina/security/SecurityClassLoad.*" />
     <include name="org/apache/catalina/webresources/war/**" />
+    <include name="org/apache/tomcat/util/ExceptionUtils.*" />
     <include name="org/apache/tomcat/util/buf/UriUtil.*" />
   </patternset>
 
@@ -478,7 +479,6 @@
   <!-- Pattern sets for embedded JARs -->
   <!-- Every standard pattern set above should be included in an embedded JAR -->
   <patternset id="files.tomcat-embed-core" >
-    <patternset refid="files.catalina" />
     <patternset refid="files.servlet-api" />
     <patternset refid="files.jaspic-api" />
     <patternset refid="files.tomcat-api" />
@@ -488,10 +488,13 @@
       <patternset refid="files.tomcat-util" />
       <patternset refid="files.tomcat-util-scan" />
     -->
+    <include name="org/apache/catalina/**" />
     <include name="org/apache/coyote/**" />
+    <include name="org/apache/naming/**" />
     <include name="org/apache/tomcat/jni/**" />
-    <include name="org/apache/jk/**" />
     <include name="org/apache/tomcat/util/**" />
+
+    <exclude name="org/apache/catalina/ant/**" />
   </patternset>
 
   <patternset id="files.tomcat-embed-jasper" >
@@ -539,6 +542,7 @@
     <mkdir dir="${tomcat.build}"/>
     <mkdir dir="${tomcat.build}/bin"/>
     <mkdir dir="${tomcat.build}/conf"/>
+    <mkdir dir="${tomcat.build}/i18n"/>
     <mkdir dir="${tomcat.build}/lib"/>
     <mkdir dir="${tomcat.build}/logs"/>
     <mkdir dir="${tomcat.build}/temp"/>
@@ -558,22 +562,10 @@
       </srcfiles>
     </uptodate>
 
-    <!-- Property that determines if OSGI bnd files need updating -->
-    <uptodate property="bnd.uptodate"
-        targetfile="${tomcat.bnd}/annotations-api.bnd" >
-      <srcfiles file="${user.home}/build.properties" />
-      <srcfiles file="${basedir}/build.properties" />
-      <srcfiles file="${basedir}/build.properties.default" />
-      <srcfiles file="${basedir}/build.xml" />
-      <srcfiles dir="${tomcat.home}/res/bnd" >
-        <include name="*.bnd" />
-      </srcfiles>
-    </uptodate>
-
   </target>
 
   <target name="validate" if="${execute.validate}"
-    depends="build-prepare,compile-prepare,download-validate"
+    depends="build-prepare,compile-prepare,download-validate,setup-bnd"
     description="Uses Checkstyle tool to perform style check for the source code">
     <!-- Required so we can cache checkstyle results -->
     <mkdir dir="${tomcat.output}/res/checkstyle"/>
@@ -738,7 +730,8 @@
     <!-- Convert the message files from UTF-8 to ASCII. This can be removed
     after upgrading to Java 9+ as the minimum JRE and specifying the encoding
     when loading the ResourceBundles -->
-    <native2ascii src="java" dest="${tomcat.classes}" includes="**/LocalStrings*.properties,**/Messages*.properties" encoding="UTF-8"/>
+    <native2ascii src="java" dest="${tomcat.classes}" includes="**/LocalStrings.properties,**/Messages*.properties" encoding="UTF-8"/>
+    <native2ascii src="java" dest="${tomcat.build}/i18n" includes="**/LocalStrings_*.properties" encoding="UTF-8"/>
 
   </target>
 
@@ -769,105 +762,101 @@
 
   </target>
 
-  <target name="build-bnd" unless="bnd.uptodate"
-          depends="setup-bnd,build-prepare">
+  <target name="package" depends="compile,build-manifests,build-prepare" >
+    <!--
+    #### ORDER IS IMPORTANT ####
+    Bnd will use the built jars to resolve import package versions and
+    JPMS module names.
+      -->
 
-    <mkdir dir="${tomcat.bnd}" />
-    <copy todir="${tomcat.bnd}" overwrite="yes" filtering="yes"
-          encoding="ISO-8859-1">
-      <filterset refid="version.filters"/>
-      <fileset dir="${tomcat.home}/res/bnd" />
-    </copy>
-
-  </target>
-
-  <target name="package" depends="compile,build-manifests,build-bnd" >
     <!-- Common Annotations JAR File -->
     <jarIt jarfile="${annotations-api.jar}"
       filesDir="${tomcat.classes}"
-      filesId="files.annotations-api"
-      manifest="${tomcat.manifests}/annotations-api.jar.manifest"
-      addOSGi="true" />
+      filesId="files.annotations-api" />
 
     <!-- Servlet Implementation JAR File -->
     <jarIt jarfile="${servlet-api.jar}"
       filesDir="${tomcat.classes}"
-      filesId="files.servlet-api"
-      manifest="${tomcat.manifests}/servlet-api.jar.manifest"
-      notice="${tomcat.manifests}/servlet-api.jar.notice"
-      license="${tomcat.manifests}/servlet-api.jar.license"
-      addOSGi="true" />
-
-    <!-- JSP Implementation JAR File -->
-    <jarIt jarfile="${jsp-api.jar}"
-      filesDir="${tomcat.classes}"
-      filesId="files.jsp-api"
-      manifest="${tomcat.manifests}/jsp-api.jar.manifest"
-      addOSGi="true" />
+      filesId="files.servlet-api" />
 
     <!-- EL Implementation JAR File -->
     <jarIt jarfile="${el-api.jar}"
       filesDir="${tomcat.classes}"
-      filesId="files.el-api"
-      manifest="${tomcat.manifests}/el-api.jar.manifest"
-      addOSGi="true" />
+      filesId="files.el-api" />
+
+    <!-- JSP Implementation JAR File -->
+    <jarIt jarfile="${jsp-api.jar}"
+      filesDir="${tomcat.classes}"
+      filesId="files.jsp-api" />
 
     <!-- WebSocket API JAR File -->
     <jarIt jarfile="${websocket-api.jar}"
       filesDir="${tomcat.classes}"
-      filesId="files.websocket-api"
-      manifest="${tomcat.manifests}/websocket-api.jar.manifest"
-      addOSGi="true" />
+      filesId="files.websocket-api" />
 
     <!-- JASPIC API JAR File -->
     <jarIt jarfile="${jaspic-api.jar}"
       filesDir="${tomcat.classes}"
-      filesId="files.jaspic-api"
-      manifest="${tomcat.manifests}/jaspic-api.jar.manifest"
-      addOSGi="true" />
-
-    <!-- WebSocket implementation JAR File -->
-    <jarIt jarfile="${tomcat-websocket.jar}"
-      filesDir="${tomcat.classes}"
-      filesId="files.tomcat-websocket"
-      meta-inf="${tomcat.manifests}/tomcat-websocket.jar"
-      addOSGi="true" />
-
-    <!-- Bootstrap JAR File -->
-    <jarIt jarfile="${bootstrap.jar}"
-      filesDir="${tomcat.classes}"
-      filesId="files.bootstrap"
-      manifest="${tomcat.manifests}/bootstrap.jar.manifest" />
+      filesId="files.jaspic-api" />
 
     <!-- Tomcat-juli JAR File -->
     <jarIt jarfile="${tomcat-juli.jar}"
       filesDir="${tomcat.classes}"
-      filesId="files.tomcat-juli"
-      addOSGi="true" />
+      filesId="files.tomcat-juli" />
 
-    <!-- Catalina Main JAR File -->
-    <jarIt jarfile="${catalina.jar}"
+    <!-- Bootstrap JAR File -->
+    <jarIt jarfile="${bootstrap.jar}"
       filesDir="${tomcat.classes}"
-      filesId="files.catalina"
-      addOSGi="true" />
+      filesId="files.bootstrap" />
+
+    <!-- Tomcat Util JAR File -->
+    <jarIt jarfile="${tomcat-util.jar}"
+      filesDir="${tomcat.classes}"
+      filesId="files.tomcat-util" />
+
+    <!-- Tomcat API JAR File -->
+    <jarIt jarfile="${tomcat-api.jar}"
+      filesDir="${tomcat.classes}"
+      filesId="files.tomcat-api" />
+
+    <!-- Tomcat Util Scan JAR File -->
+    <jarIt jarfile="${tomcat-util-scan.jar}"
+      filesDir="${tomcat.classes}"
+      filesId="files.tomcat-util-scan" />
+
+    <jarIt jarfile="${tomcat-jni.jar}"
+      filesDir="${tomcat.classes}"
+      filesId="files.tomcat-jni" />
+
+    <!-- Protocol handlers - Coyote -->
+    <jarIt jarfile="${tomcat-coyote.jar}"
+      filesDir="${tomcat.classes}"
+      filesId="files.tomcat-coyote" />
+
+    <!-- WebSocket implementation JAR File -->
+    <jarIt jarfile="${tomcat-websocket.jar}"
+      filesDir="${tomcat.classes}"
+      filesId="files.tomcat-websocket" />
 
     <!-- Catalina GroupCom/Tribes JAR File -->
     <jarIt jarfile="${catalina-tribes.jar}"
       filesDir="${tomcat.classes}"
-      filesId="files.catalina-tribes"
-      addOSGi="true" />
+      filesId="files.catalina-tribes" />
 
-    <!-- Server-Side Includes (SSI) -->
-    <jarIt jarfile="${catalina-ssi.jar}"
+    <!-- Catalina Main JAR File -->
+    <jarIt jarfile="${catalina.jar}"
       filesDir="${tomcat.classes}"
-      filesId="files.catalina-ssi"
-      addOSGi="true" />
+      filesId="files.catalina" />
 
     <!-- Catalina Cluster/HA JAR File -->
     <jarIt jarfile="${catalina-ha.jar}"
       filesDir="${tomcat.classes}"
-      filesId="files.catalina-ha"
-      addOSGi="true" />
+      filesId="files.catalina-ha" />
+
+    <!-- Server-Side Includes (SSI) -->
+    <jarIt jarfile="${catalina-ssi.jar}"
+      filesDir="${tomcat.classes}"
+      filesId="files.catalina-ssi" />
 
     <!-- Catalina Ant Tasks JAR File -->
     <jarIt jarfile="${catalina-ant.jar}"
@@ -877,62 +866,27 @@
     <!-- Catalina Storeconfig JAR File -->
     <jarIt jarfile="${catalina-storeconfig.jar}"
       filesDir="${tomcat.classes}"
-      filesId="files.catalina-storeconfig"
-      addOSGi="true" />
-
-    <!-- Tomcat API JAR File -->
-    <jarIt jarfile="${tomcat-api.jar}"
-      filesDir="${tomcat.classes}"
-      filesId="files.tomcat-api"
-      addOSGi="true" />
-
-    <!-- Tomcat Util JAR File -->
-    <jarIt jarfile="${tomcat-util.jar}"
-      filesDir="${tomcat.classes}"
-      filesId="files.tomcat-util"
-      addOSGi="true" />
-
-    <!-- Tomcat Util Scan JAR File -->
-    <jarIt jarfile="${tomcat-util-scan.jar}"
-      filesDir="${tomcat.classes}"
-      filesId="files.tomcat-util-scan"
-      addOSGi="true" />
-
-    <!-- Protocol handlers - Coyote -->
-    <jarIt jarfile="${tomcat-coyote.jar}"
-      filesDir="${tomcat.classes}"
-      filesId="files.tomcat-coyote"
-      addOSGi="true" />
-
-    <jarIt jarfile="${tomcat-jni.jar}"
-      filesDir="${tomcat.classes}"
-      filesId="files.tomcat-jni"
-      addOSGi="true" />
-
-    <!-- Jasper Implementation JAR File -->
-    <jarIt jarfile="${jasper.jar}"
-      filesDir="${tomcat.classes}"
-      filesId="files.jasper"
-      meta-inf="${tomcat.manifests}/jasper.jar"
-      addOSGi="true" />
+      filesId="files.catalina-storeconfig" />
 
     <!-- Jasper EL Implementation JAR File -->
     <jarIt jarfile="${jasper-el.jar}"
       filesDir="${tomcat.classes}"
-      filesId="files.jasper-el"
-      meta-inf="${tomcat.manifests}/jasper-el.jar"
-      addOSGi="true" />
+      filesId="files.jasper-el" />
+
+    <!-- Jasper Implementation JAR File -->
+    <jarIt jarfile="${jasper.jar}"
+      filesDir="${tomcat.classes}"
+      filesId="files.jasper" />
 
     <!-- Re-packaged Apache Commons DBCP 2-->
     <jarIt jarfile="${tomcat-dbcp.jar}"
       filesDir="${tomcat.classes}"
-      filesId="files.tomcat-dbcp"
-      addOSGi="true" />
+      filesId="files.tomcat-dbcp" />
 
     <!-- i18n JARs -->
     <jar jarfile="${tomcat.build}/lib/tomcat-i18n-cs.jar"
       manifest="${tomcat.manifests}/default.manifest">
-      <fileset dir="${tomcat.classes}">
+      <fileset dir="${tomcat.build}/i18n">
         <include name="**/LocalStrings_cs.properties" />
       </fileset>
       <zipfileset file="${tomcat.manifests}/default.notice"
@@ -942,7 +896,7 @@
     </jar>
     <jar jarfile="${tomcat.build}/lib/tomcat-i18n-de.jar"
       manifest="${tomcat.manifests}/default.manifest">
-      <fileset dir="${tomcat.classes}">
+      <fileset dir="${tomcat.build}/i18n">
         <include name="**/LocalStrings_de.properties" />
       </fileset>
       <zipfileset file="${tomcat.manifests}/default.notice"
@@ -952,7 +906,7 @@
     </jar>
     <jar jarfile="${tomcat.build}/lib/tomcat-i18n-es.jar"
       manifest="${tomcat.manifests}/default.manifest">
-      <fileset dir="${tomcat.classes}">
+      <fileset dir="${tomcat.build}/i18n">
         <include name="**/LocalStrings_es.properties" />
       </fileset>
       <zipfileset file="${tomcat.manifests}/default.notice"
@@ -962,7 +916,7 @@
     </jar>
     <jar jarfile="${tomcat.build}/lib/tomcat-i18n-fr.jar"
       manifest="${tomcat.manifests}/default.manifest">
-      <fileset dir="${tomcat.classes}">
+      <fileset dir="${tomcat.build}/i18n">
         <include name="**/LocalStrings_fr.properties" />
       </fileset>
       <zipfileset file="${tomcat.manifests}/default.notice"
@@ -972,7 +926,7 @@
     </jar>
     <jar jarfile="${tomcat.build}/lib/tomcat-i18n-ja.jar"
       manifest="${tomcat.manifests}/default.manifest">
-      <fileset dir="${tomcat.classes}">
+      <fileset dir="${tomcat.build}/i18n">
         <include name="**/LocalStrings_ja.properties" />
       </fileset>
       <zipfileset file="${tomcat.manifests}/default.notice"
@@ -982,7 +936,7 @@
     </jar>
     <jar jarfile="${tomcat.build}/lib/tomcat-i18n-ko.jar"
       manifest="${tomcat.manifests}/default.manifest">
-      <fileset dir="${tomcat.classes}">
+      <fileset dir="${tomcat.build}/i18n">
         <include name="**/LocalStrings_ko.properties" />
       </fileset>
       <zipfileset file="${tomcat.manifests}/default.notice"
@@ -992,7 +946,7 @@
     </jar>
     <jar jarfile="${tomcat.build}/lib/tomcat-i18n-pt-BR.jar"
       manifest="${tomcat.manifests}/default.manifest">
-      <fileset dir="${tomcat.classes}">
+      <fileset dir="${tomcat.build}/i18n">
         <include name="**/LocalStrings_pt_BR.properties" />
       </fileset>
       <zipfileset file="${tomcat.manifests}/default.notice"
@@ -1002,7 +956,7 @@
     </jar>
     <jar jarfile="${tomcat.build}/lib/tomcat-i18n-ru.jar"
       manifest="${tomcat.manifests}/default.manifest">
-      <fileset dir="${tomcat.classes}">
+      <fileset dir="${tomcat.build}/i18n">
         <include name="**/LocalStrings_ru.properties" />
       </fileset>
       <zipfileset file="${tomcat.manifests}/default.notice"
@@ -1012,7 +966,7 @@
     </jar>
     <jar jarfile="${tomcat.build}/lib/tomcat-i18n-zh-CN.jar"
       manifest="${tomcat.manifests}/default.manifest">
-      <fileset dir="${tomcat.classes}">
+      <fileset dir="${tomcat.build}/i18n">
         <include name="**/LocalStrings_zh_CN.properties" />
       </fileset>
       <zipfileset file="${tomcat.manifests}/default.notice"
@@ -1386,7 +1340,7 @@
     </txt2html>
   </target>
   <target name="embed-jars" description="Create experimental embedded jars"
-    depends="build-manifests,build-bnd,compile" >
+    depends="compile" >
 
     <mkdir dir="${tomcat.embed}" />
 
@@ -1397,54 +1351,33 @@
     <copy file="${jdt.jar}" todir="${tomcat.embed}" />
     <copy file="${annotations-api.jar}" todir="${tomcat.embed}" />
 
-    <!-- Note the meta-inf below will work as long as there is only one JAR
-         that needs to add entries. If there is more than one a more complex
-         solution will be required. -->
     <jarIt jarfile="${tomcat-embed-core.jar}"
            filesDir="${tomcat.classes}"
            filesId="files.tomcat-embed-core"
-           notice="${tomcat.manifests}/servlet-api.jar.notice"
-           license="${tomcat.manifests}/servlet-api.jar.license"
-           addOSGi="true"
-           addGraal="true"
-           graalPrefix="org.apache.tomcat.embed/tomcat-embed-core"
-           graalFiles="res/graal/tomcat-embed-core/native-image"/>
-    <jarIt jarfile="${tomcat-embed-jasper.jar}"
-           filesDir="${tomcat.classes}"
-           filesId="files.tomcat-embed-jasper"
-           meta-inf="${tomcat.manifests}/jasper.jar"
-           addOSGi="true"
-           addGraal="true"
-           graalPrefix="org.apache.tomcat.embed/tomcat-embed-jasper"
-           graalFiles="res/graal/tomcat-embed-jasper/native-image"/>
+           libs="embed/*.jar"/>
     <jarIt jarfile="${tomcat-embed-el.jar}"
            filesDir="${tomcat.classes}"
            filesId="files.tomcat-embed-el"
-           addOSGi="true"
-           addGraal="true"
-           graalPrefix="org.apache.tomcat.embed/tomcat-embed-el"
-           graalFiles="res/graal/tomcat-embed-el/native-image"/>
+           libs="embed/*.jar"/>
+    <jarIt jarfile="${tomcat-embed-jasper.jar}"
+           filesDir="${tomcat.classes}"
+           filesId="files.tomcat-embed-jasper"
+           libs="embed/*.jar"/>
     <jarIt jarfile="${tomcat-embed-websocket.jar}"
            filesDir="${tomcat.classes}"
            filesId="files.tomcat-embed-websocket"
-           meta-inf="${tomcat.manifests}/tomcat-websocket.jar"
-           addOSGi="true"
-           addGraal="true"
-           graalPrefix="org.apache.tomcat.embed/tomcat-embed-websocket"
-           graalFiles="res/graal/tomcat-embed-websocket/native-image"/>
+           libs="embed/*.jar"/>
   </target>
 
   <target name="embed-sources"
           description="Create source jars for embedded jars"
-          depends="build-manifests,package-src-jar" >
+          depends="package-src-jar" >
 
     <mkdir dir="${tomcat.embed.sources}" />
 
     <jarIt jarfile="${tomcat-embed-core-sources.jar}"
            filesDir="java"
-           filesId="files.tomcat-embed-core"
-            notice="${tomcat.manifests}/servlet-api.jar.notice"
-            license="${tomcat.manifests}/servlet-api.jar.license"/>
+           filesId="files.tomcat-embed-core"/>
     <jarIt jarfile="${tomcat-embed-jasper-sources.jar}"
            filesDir="java"
            filesId="files.tomcat-embed-jasper"/>
@@ -2614,43 +2547,34 @@ skip.installer property in build.properties" />
 
   <!-- Packages the source code in JARs to match the binary JARs -->
   <target name="package-src-jar"
-          depends="build-manifests,build-tomcat-jdbc-src">
+          depends="build-tomcat-jdbc-src">
 
     <mkdir dir="${tomcat.src.jars}" />
 
     <!-- Common Annotations JAR File -->
     <jarIt jarfile="${annotations-api-src.jar}"
       filesDir="java"
-      filesId="files.annotations-api"
-      manifest="${tomcat.manifests}/annotations-api.jar.manifest" />
+      filesId="files.annotations-api" />
 
     <!-- Servlet Implementation JAR File -->
     <jarIt jarfile="${servlet-api-src.jar}"
       filesDir="java"
-      filesId="files.servlet-api"
-      manifest="${tomcat.manifests}/servlet-api.jar.manifest"
-      notice="${tomcat.manifests}/servlet-api.jar.notice"
-      license="${tomcat.manifests}/servlet-api.jar.license" />
+      filesId="files.servlet-api" />
 
     <!-- JSP Implementation JAR File -->
     <jarIt jarfile="${jsp-api-src.jar}"
       filesDir="java"
-      filesId="files.jsp-api"
-      manifest="${tomcat.manifests}/jsp-api.jar.manifest"
-      notice="${tomcat.manifests}/jsp-api.jar.notice"
-      license="${tomcat.manifests}/jsp-api.jar.license" />
+      filesId="files.jsp-api" />
 
     <!-- JSP EL Implementation JAR File -->
     <jarIt jarfile="${el-api-src.jar}"
       filesDir="java"
-      filesId="files.el-api"
-      manifest="${tomcat.manifests}/el-api.jar.manifest" />
+      filesId="files.el-api" />
 
     <!-- WebSocket API JAR File -->
     <jarIt jarfile="${websocket-api-src.jar}"
       filesDir="java"
-      filesId="files.websocket-api"
-      manifest="${tomcat.manifests}/websocket-api.jar.manifest" />
+      filesId="files.websocket-api" />
 
     <!-- WebSocket implementation JAR File -->
     <jarIt jarfile="${tomcat-websocket-src.jar}"
@@ -2660,16 +2584,12 @@ skip.installer property in build.properties" />
     <!-- JASPIC API JAR File -->
     <jarIt jarfile="${jaspic-api-src.jar}"
       filesDir="java"
-      filesId="files.jaspic-api"
-      manifest="${tomcat.manifests}/jaspic-api.jar.manifest"
-      notice="${tomcat.manifests}/jaspic-api.jar.notice"
-      license="${tomcat.manifests}/jaspic-api.jar.license" />
+      filesId="files.jaspic-api" />
 
     <!-- Bootstrap JAR File -->
     <jarIt jarfile="${bootstrap-src.jar}"
       filesDir="java"
-      filesId="files.bootstrap"
-      manifest="${tomcat.manifests}/bootstrap.jar.manifest" />
+      filesId="files.bootstrap" />
 
     <!-- Tomcat-juli JAR File -->
     <jarIt jarfile="${tomcat-juli-src.jar}"
@@ -3328,23 +3248,12 @@ Read the Building page on the Apache Tomcat documentation site for details on ho
       <param name="checksum.algorithm" value="${bnd.checksum.algorithm}"/>
       <param name="checksum.value" value="${bnd.checksum.value}"/>
     </antcall>
-
-    <!-- Download bndlib -->
-    <antcall target="downloadfile">
-      <param name="sourcefile" value="${bndlib.loc}"/>
-      <param name="destfile" value="${bndlib.jar}"/>
-      <param name="destdir" value="${bndlib.home}"/>
-      <param name="checksum.enabled" value="${bndlib.checksum.enabled}"/>
-      <param name="checksum.algorithm" value="${bndlib.checksum.algorithm}"/>
-      <param name="checksum.value" value="${bndlib.checksum.value}"/>
-    </antcall>
   </target>
 
   <target name="setup-bnd" depends="download-bnd">
     <!-- Add bnd tasks to project -->
     <path id="bndlib.classpath">
       <fileset file="${bnd.jar}" />
-      <fileset file="${bndlib.jar}" />
     </path>
 
     <taskdef resource="aQute/bnd/ant/taskdef.properties" classpathref="bndlib.classpath" />
@@ -3357,63 +3266,36 @@ Read the Building page on the Apache Tomcat documentation site for details on ho
                description="the directory from which to obtain the files "/>
     <attribute name="filesId"
                description="the patternset id of the files to use"/>
-    <attribute name="manifest" description="the manifest file use"
-               default="${tomcat.manifests}/default.manifest" />
-    <attribute name="notice" description="the LICENSE file to use"
-               default="${tomcat.manifests}/default.notice" />
-    <attribute name="license" description="the NOTICE file to use"
-               default="${tomcat.manifests}/default.license" />
-    <attribute name="meta-inf" description="additional contents for META-INF"
-               default="${tomcat.manifests}/default" />
-    <attribute name="addOSGi" description="generate OSGi metadata"
-               default="false" />
-    <attribute name="addGraal" description="add Graal resource/reflection files if set"
-               default="false" />
-    <attribute name="graalPrefix" description="Graal resource/reflection location prefix (group_id/artifact_id)"
-               default="" />
-    <attribute name="graalFiles" description="Graal resource/reflection file location"
-               default="" />
+    <attribute name="libs" description="libraries to use for bnd classpath analysis relative to ${tomcat.output}"
+               default="build/lib/*.jar,build/bin/tomcat-juli.jar" />
     <sequential>
-      <jar jarfile="@{jarfile}" manifest="@{manifest}">
+      <local name="filename"/>
+      <basename property="filename" file="@{jarfile}"/>
+
+      <zip destfile="${tomcat.build}/temp/${filename}">
         <fileset dir="@{filesDir}">
           <patternset refid="@{filesId}"/>
           <!-- Javadoc and i18n exclusions -->
           <exclude name="**/package.html" />
-          <exclude name="**/LocalStrings_*" />
+          <exclude name="**/LocalStrings_*.properties" />
         </fileset>
-        <zipfileset dir="@{meta-inf}" prefix="META-INF/"
-                    excludes=".gitignore" />
-        <zipfileset file="@{notice}" fullpath="META-INF/NOTICE" />
-        <zipfileset file="@{license}" fullpath="META-INF/LICENSE" />
-      </jar>
-      <antcall target="add-osgi" >
-        <param name="jarfile" value="@{jarfile}" />
-        <param name="addOSGi" value="@{addOSGi}" />
-      </antcall>
-      <antcall target="add-graal">
-        <param name="jarfile" value="@{jarfile}" />
-        <param name="addGraal" value="@{addGraal}" />
-        <param name="graalFiles" value="@{graalFiles}" />
-        <param name="graalPrefix" value="@{graalPrefix}" />
-      </antcall>
+      </zip>
+
+      <bnd
+        exceptions="true"
+        basedir="${basedir}"
+        output="@{jarfile}"
+      >
+        <classpath>
+          <pathelement location="${tomcat.build}/temp/${filename}"/>
+          <fileset dir="${tomcat.output}" includes="@{libs}" />
+        </classpath>
+        <bndfiles>
+          <pathelement location="${tomcat.bnd}/${filename}.tmp.bnd"/>
+        </bndfiles>
+      </bnd>
     </sequential>
   </macrodef>
-
-  <target name="add-osgi" if="${addOSGi}" >
-    <echo message="add-osgi ${jarfile} ${addOSGi}"></echo>
-    <bndwrap output="${jarfile}.tmp" definitions="${tomcat.bnd}" >
-      <fileset file="${jarfile}"  />
-    </bndwrap>
-    <delete file="${jarfile}" />
-    <move file="${jarfile}.tmp" tofile="${jarfile}" />
-  </target>
-
-  <target name="add-graal" if="${addGraal}">
-    <echo message="add-graal  ${addGraal} ${jarfile} ${graalFiles} ${graalPrefix}"></echo>
-    <zip destfile="${jarfile}" update="true">
-      <zipfileset dir="${basedir}/${graalFiles}" prefix="META-INF/native-image/${graalPrefix}" includes="*.*"/>
-    </zip>
-  </target>
 
   <!-- Macro, used to create checksum and signature files  -->
   <!-- Requires 'file' as a parameter. -->

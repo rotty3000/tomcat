@@ -12,12 +12,31 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+-include: build-defaults.bnd
+
 Bundle-Name: tomcat-servlet-api
 Bundle-SymbolicName: org.apache.tomcat-servlet-api
-Bundle-Version: ${version_cleanup;@VERSION@}
 Export-Package: \
-    jakarta.servlet,\
-    jakarta.servlet.annotation,\
-    jakarta.servlet.descriptor,\
-    jakarta.servlet.http,\
-    jakarta.servlet.resources
+    !jakarta.servlet.jsp.*,\
+    jakarta.servlet.*;version=${servlet.spec.version}
+
+Provide-Capability: \
+	osgi.contract;\
+		osgi.contract=JavaServlet;\
+		version:Version=${servlet.spec.version};\
+		uses:='${packages;NAMED;jakarta.servlet.*;NAMED;!jakarta.servlet.jsp.*}'
+
+-includeresource.notice: META-INF/NOTICE;literal="${replace;${cat;../META-INF/servlet-api.jar.notice};@YEAR@;${year}}"
+-includeresource.license: {META-INF/LICENSE=../META-INF/servlet-api.jar.license}
+
+-jpms-module-info: jakarta.servlet-api;version=${servlet.spec.version}
+-jpms-module-info-options: jakarta.servlet-api;substitute=servlet-api
+
+-namesection: jakarta/*/;\
+	Specification-Title=Jakarta Servlet;\
+	Specification-Version=${servlet.spec.version};\
+	Specification-Vendor=Eclipse Foundation;\
+	Implementation-Title=jakarta.servlet;\
+	Implementation-Version=${servlet.spec.version}.${servlet.revision};\
+	Implementation-Vendor=Apache Software Foundation

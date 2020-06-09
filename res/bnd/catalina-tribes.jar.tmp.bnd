@@ -12,18 +12,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+
+-include: build-defaults.bnd, manifest-defaults.bnd
+
 Bundle-Name: tomcat-tribes
 Bundle-SymbolicName: org.apache.tomcat-tribes
-Bundle-Version: ${version_cleanup;@VERSION@}
 Export-Package: \
-    org.apache.catalina.tribes,\
-    org.apache.catalina.tribes.group,\
-    org.apache.catalina.tribes.group.interceptors,\
-    org.apache.catalina.tribes.io,\
-    org.apache.catalina.tribes.jmx,\
-    org.apache.catalina.tribes.membership,\
-    org.apache.catalina.tribes.tipis,\
-    org.apache.catalina.tribes.transport,\
-    org.apache.catalina.tribes.transport.bio,\
-    org.apache.catalina.tribes.transport.nio,\
-    org.apache.catalina.tribes.util
+    org.apache.catalina.tribes.*
+
+-jpms-module-info: ${module.name};version=${Bundle-Version}
+-jpms-module-info-options: ${module.name};substitute=catalina-tribes

@@ -12,12 +12,25 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-Automatic-Module-Name: org.apache.tomcat.embed.websocket
+
+-include: build-defaults.bnd, manifest-defaults.bnd
+
 Bundle-Name: tomcat-embed-websocket
 Bundle-SymbolicName: org.apache.tomcat-embed-websocket
-Bundle-Version: ${version_cleanup;@VERSION@}
 Export-Package: \
-    jakarta.websocket,\
-    jakarta.websocket.server,\
-    org.apache.tomcat.websocket,\
-    org.apache.tomcat.websocket.server
+    jakarta.websocket.*;version=${websocket.spec.version},\
+    org.apache.tomcat.websocket.*
+
+Provide-Capability: \
+	osgi.contract;\
+		osgi.contract=JavaWebSockets;\
+		version:Version=${websocket.spec.version};\
+		uses:='${packages;NAMED;jakarta.websocket.*}'
+
+-includeresource.meta-inf: /META-INF/=../META-INF/tomcat-websocket.jar/
+-includeresource.graal=\
+	META-INF/native-image/org.apache.tomcat.embed/tomcat-embed-websocket=${basedir}/res/graal/tomcat-embed-websocket/native-image
+
+-fixupmessages: Split package...
+-jpms-module-info: org.apache.tomcat.embed.websocket;version=${Bundle-Version}
+-jpms-module-info-options: org.apache.tomcat.embed.websocket;substitute=tomcat-embed-websocket
