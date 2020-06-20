@@ -28,8 +28,10 @@ import java.util.Collections;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
 
@@ -67,7 +69,7 @@ public class WebappServiceLoader<T> {
     private final Context context;
     private final ServletContext servletContext;
     private final Pattern containerSciFilterPattern;
-
+    private final LinkedHashMap<String, T> externalContainerServices;
 
     /**
      * Construct a loader to load services from a ServletContext.
@@ -83,6 +85,17 @@ public class WebappServiceLoader<T> {
         } else {
             containerSciFilterPattern = null;
         }
+        this.externalContainerServices = new LinkedHashMap<>();
+    }
+
+
+    /**
+     * Add container services using an external mechanism.
+     *
+     * @param externalServices externally defined container services
+     */
+    public void addExternalContainerServices(Map<String, T> externalServices) {
+        externalContainerServices.putAll(externalServices);
     }
 
 
@@ -121,6 +134,8 @@ public class WebappServiceLoader<T> {
             containerServiceConfigFiles.add(containerServiceConfigFile);
             parseConfigFile(containerServiceClassNames, containerServiceConfigFile);
         }
+
+        containerServiceClassNames.addAll(externalContainerServices.keySet());
 
         // Filter the discovered container SCIs if required
         if (containerSciFilterPattern != null) {
@@ -228,6 +243,10 @@ public class WebappServiceLoader<T> {
         ClassLoader loader = servletContext.getClassLoader();
         List<T> services = new ArrayList<>(servicesFound.size());
         for (String serviceClass : servicesFound) {
+            if (externalContainerServices.containsKey(serviceClass)) {
+                services.add(externalContainerServices.get(serviceClass));
+                continue;
+            }
             try {
                 Class<?> clazz = Class.forName(serviceClass, true, loader);
                 services.add(serviceType.cast(clazz.getConstructor().newInstance()));

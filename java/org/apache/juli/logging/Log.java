@@ -18,6 +18,10 @@
 
 package org.apache.juli.logging;
 
+import static aQute.bnd.annotation.Resolution.OPTIONAL;
+
+import aQute.bnd.annotation.spi.ServiceConsumer;
+
 /**
  * <p>A simple logging interface abstracting logging APIs.  In order to be
  * instantiated successfully by {@link LogFactory}, classes that implement
@@ -59,6 +63,7 @@ package org.apache.juli.logging;
  * @author <a href="mailto:sanders@apache.org">Scott Sanders</a>
  * @author Rod Waldhoff
  */
+@ServiceConsumer(value = Log.class, resolution = OPTIONAL)
 public interface Log {
 
 

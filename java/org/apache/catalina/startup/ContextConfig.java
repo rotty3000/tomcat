@@ -37,8 +37,12 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Properties;
+import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import jakarta.servlet.MultipartConfigElement;
 import jakarta.servlet.ServletContainerInitializer;
@@ -112,12 +116,15 @@ import org.apache.tomcat.util.scan.JarFactory;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXParseException;
 
+import aQute.bnd.annotation.spi.ServiceConsumer;
+
 /**
  * Startup event listener for a <b>Context</b> that configures the properties
  * of that Context, and the associated defined servlets.
  *
  * @author Craig R. McClanahan
  */
+@ServiceConsumer(ServletContainerInitializer.class)
 public class ContextConfig implements LifecycleListener {
 
     private static final Log log = LogFactory.getLog(ContextConfig.class);
@@ -1878,6 +1885,11 @@ public class ContextConfig implements LifecycleListener {
         List<ServletContainerInitializer> detectedScis;
         try {
             WebappServiceLoader<ServletContainerInitializer> loader = new WebappServiceLoader<>(context);
+            // In OSGi ServiceLoader is only agnostic way to make container services available.
+            loader.addExternalContainerServices(
+                StreamSupport.stream(ServiceLoader.load(ServletContainerInitializer.class).spliterator(), false).collect(
+                    Collectors.toMap(sci -> sci.getClass().getName(), Function.identity())
+                ));
             detectedScis = loader.load(ServletContainerInitializer.class);
         } catch (IOException e) {
             log.error(sm.getString(

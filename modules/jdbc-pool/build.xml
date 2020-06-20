@@ -33,6 +33,7 @@
   <property file="${user.home}/build.properties"/>
   <property file="${basedir}/build.properties"/>
   <property file="${basedir}/build.properties.default"/>
+  <property file="${basedir}/../../build.properties.default"/>
   <property name="version"               value="${version.major}.${version.minor}.${version.build}.${version.patch}${version.suffix}" />
   <property name="version.major.minor"   value="${version.major}.${version.minor}" />
 
@@ -63,6 +64,7 @@
   <property name="tomcat-jdbc-api.jar" value="${tomcat.pool}/tomcat-jdbc-api.jar"/>
   <!-- Classpath -->
   <path id="tomcat.jdbc.classpath">
+    <pathelement location="${bnd.jar}"/>
     <pathelement location="${tomcat.classes}"/>
     <pathelement location="${tomcat.juli.jar}"/>
   </path>

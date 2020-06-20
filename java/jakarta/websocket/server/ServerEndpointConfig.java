@@ -23,6 +23,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.ServiceLoader;
 
+import aQute.bnd.annotation.spi.ServiceConsumer;
 import jakarta.websocket.Decoder;
 import jakarta.websocket.Encoder;
 import jakarta.websocket.EndpointConfig;
@@ -139,6 +140,7 @@ public interface ServerEndpointConfig extends EndpointConfig {
     }
 
 
+    @ServiceConsumer(Configurator.class)
     public class Configurator {
 
         private static volatile Configurator defaultImpl = null;

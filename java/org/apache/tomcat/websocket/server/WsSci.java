@@ -33,6 +33,8 @@ import jakarta.websocket.server.ServerEndpointConfig;
 
 import org.apache.tomcat.util.compat.JreCompat;
 
+import aQute.bnd.annotation.spi.ServiceProvider;
+
 /**
  * Registers an interest in any class that is annotated with
  * {@link ServerEndpoint} so that Endpoint can be published via the WebSocket
@@ -40,6 +42,7 @@ import org.apache.tomcat.util.compat.JreCompat;
  */
 @HandlesTypes({ServerEndpoint.class, ServerApplicationConfig.class,
         Endpoint.class})
+@ServiceProvider(ServletContainerInitializer.class)
 public class WsSci implements ServletContainerInitializer {
 
     @Override

@@ -35,9 +35,12 @@ import org.apache.tomcat.InstanceManager;
 import org.apache.tomcat.SimpleInstanceManager;
 import org.xml.sax.SAXException;
 
+import aQute.bnd.annotation.spi.ServiceProvider;
+
 /**
  * Initializer for the Jasper JSP Engine.
  */
+@ServiceProvider(ServletContainerInitializer.class)
 public class JasperInitializer implements ServletContainerInitializer {
 
     private static final String MSG = "org.apache.jasper.servlet.JasperInitializer";

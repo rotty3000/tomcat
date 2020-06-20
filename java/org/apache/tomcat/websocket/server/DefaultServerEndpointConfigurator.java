@@ -21,11 +21,13 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import aQute.bnd.annotation.spi.ServiceProvider;
 import jakarta.websocket.Extension;
 import jakarta.websocket.HandshakeResponse;
 import jakarta.websocket.server.HandshakeRequest;
 import jakarta.websocket.server.ServerEndpointConfig;
 
+@ServiceProvider(ServerEndpointConfig.Configurator.class)
 public class DefaultServerEndpointConfigurator
         extends ServerEndpointConfig.Configurator {
 

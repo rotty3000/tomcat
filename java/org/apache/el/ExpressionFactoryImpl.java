@@ -27,12 +27,15 @@ import org.apache.el.lang.ExpressionBuilder;
 import org.apache.el.stream.StreamELResolverImpl;
 import org.apache.el.util.MessageFactory;
 
+import aQute.bnd.annotation.spi.ServiceProvider;
+
 
 /**
  * @see jakarta.el.ExpressionFactory
  *
  * @author Jacob Hookom [jacob@hookom.net]
  */
+@ServiceProvider(ExpressionFactory.class)
 public class ExpressionFactoryImpl extends ExpressionFactory {
 
     /**

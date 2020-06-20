@@ -16,14 +16,19 @@
  */
 package org.apache.tomcat.websocket;
 
+import static aQute.bnd.annotation.Resolution.OPTIONAL;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import aQute.bnd.annotation.spi.ServiceConsumer;
+
 /**
  * Base class for the authentication methods used by the websocket client.
  */
+@ServiceConsumer(value = Authenticator.class, resolution = OPTIONAL)
 public abstract class Authenticator {
     private static final Pattern pattern = Pattern
             .compile("(\\w+)\\s*=\\s*(\"([^\"]+)\"|([^,=\"]+))\\s*,?");
