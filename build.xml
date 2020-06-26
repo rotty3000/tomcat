@@ -1515,6 +1515,12 @@
         <include name="**/logging-non-rotatable.properties"/>
       </fileset>
     </copy>
+
+    <taskdef
+      name="shutdown"
+      classpathref="tomcat.test.classpath"
+      classname="org.apache.tomcat.util.ant.Shutdown"
+      adapter="org.apache.tools.ant.TaskAdapter" />
   </target>
 
   <!-- Default JUnit log output formatter -->
@@ -1605,6 +1611,52 @@
     <available file="${test.apr.loc}" property="apr.exists" />
   </target>
 
+  <target name="test-container-standard" description="Runs the JUnit container test cases for Standard deployment. Does not stop on errors."
+          depends="test-compile,deploy,cobertura-instrument">
+      <testcontainer instructions="run" />
+  </target>
+
+  <macrodef name="testcontainer"
+            description="Tests the container started with specified instructions.">
+    <attribute name="instructions"
+               description="The tomcat instructions used to start the container."/>
+
+    <sequential>
+      <condition property="os.windows">
+        <os family="windows"/>
+      </condition>
+
+      <parallel>
+        <echo message="Start Tomcat" />
+        <exec
+          if:set="os.windows"
+          dir="${tomcat.build}/bin" executable="cmd" newenvironment="true"
+        >
+          <arg line="/c catalina.bat @{instructions}"/>
+        </exec>
+        <exec
+          unless:set="os.windows"
+          dir="${tomcat.build}/bin" executable="./catalina.sh" newenvironment="true"
+        >
+          <arg line=" @{instructions}" />
+        </exec>
+
+        <sequential>
+          <!-- Wait a moment until server is ready -->
+          <sleep seconds="2"/>
+
+          <runcontainertests />
+
+          <!-- Wait for test outout to flush -->
+          <sleep seconds="2"/>
+
+          <echo message="Stop Tomcat" />
+          <shutdown />
+        </sequential>
+      </parallel>
+    </sequential>
+  </macrodef>
+
   <target name="test-openssl-exists" description="Checks for the OpenSSL binary">
     <property environment="env" />
     <condition property="test.openssl.exists">
@@ -1681,6 +1733,8 @@
           <fileset dir="test" includes="${test.name}" excludes="${test.exclude}">
             <!-- Exclude helper classes -->
             <exclude name="**/Tester*.java" />
+            <!-- Exclude container tests -->
+            <exclude name="org/apache/tomcat/container/**" />
             <!-- Exclude the tests known to fail -->
             <exclude name="org/apache/catalina/tribes/test/**" />
             <!-- Exclude the OpenSSL tests unless OpenSSL is available -->
@@ -1689,6 +1743,52 @@
             <exclude name="**/*Performance.java" if="${test.excludePerformance}" />
             <!-- Exclude tests that Gump can't compile -->
             <exclude name="org/apache/tomcat/buildutil/**" />
+          </fileset>
+        </batchtest>
+      </junit>
+    </sequential>
+  </macrodef>
+
+  <macrodef name="runcontainertests"
+            description="Runs the container tests.
+              Does not stop on errors, but sets 'test.result.error' and 'test.result.failure' properties.">
+
+    <sequential>
+      <mkdir dir="${test.reports}" />
+      <echo message="This task does not support $${test.entry}" if:set="test.entry" />
+      <junit printsummary="yes" fork="yes" dir="." showoutput="${test.verbose}"
+        errorproperty="test.result.error"
+        failureproperty="test.result.failure"
+        haltonfailure="${test.haltonfailure}"
+        threads="${test.threads}">
+
+        <jvmarg value="${test.jvmarg.egd}"/>
+        <jvmarg value="-Dfile.encoding=UTF-8"/>
+        <jvmarg value="-Djava.library.path=${test.apr.loc}"/>
+        <jvmarg value="${test.formatter}"/>
+        <jvmarg value="-Djava.net.preferIPv4Stack=${java.net.preferIPv4Stack}"/>
+        <jvmarg value="-Dorg.apache.tomcat.util.net.NioSelectorShared=${org.apache.tomcat.util.net.NioSelectorShared}"/>
+
+        <!-- Java 9 -->
+        <jvmarg value="${java9.test.option.1}"/>
+        <jvmarg value="${java9.test.option.2}"/>
+        <jvmarg value="${java9.test.option.3}"/>
+
+        <classpath refid="tomcat.test.run.classpath" />
+
+        <sysproperty key="tomcat.test.temp" value="${test.temp}" />
+        <sysproperty key="tomcat.test.basedir" value="${test.basedir}" />
+        <sysproperty key="tomcat.test.tomcatbuild" value="${tomcat.build}" />
+        <sysproperty key="tomcat.test.reports" value="${test.reports}" />
+
+        <formatter type="${junit.formatter.type}"
+                   usefile="${junit.formatter.usefile}"
+                   extension=".CONTAINER${junit.formatter.extension}" />
+
+        <batchtest todir="${test.reports}" unless="test.entry">
+          <fileset dir="test" includes="org/apache/tomcat/container/**" excludes="${test.exclude}">
+            <!-- Exclude helper classes -->
+            <exclude name="**/Tester*.java" />
           </fileset>
         </batchtest>
       </junit>
