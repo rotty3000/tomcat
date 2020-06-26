@@ -381,6 +381,7 @@ public class HostConfig implements LifecycleListener {
      */
     protected static Digester createDigester(String contextClassName) {
         Digester digester = new Digester();
+        digester.setUseContextClassLoader(true);
         digester.setValidating(false);
         // Add object creation rule
         digester.addObjectCreate("Context", contextClassName, "className");

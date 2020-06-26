@@ -56,6 +56,7 @@ final class PersistentProviderRegistrations {
         try (InputStream is = new FileInputStream(configFile)) {
             // Construct a digester to read the XML input file
             Digester digester = new Digester();
+            digester.setUseContextClassLoader(true);
 
             try {
                 digester.setFeature("http://apache.org/xml/features/allow-java-encodings", true);

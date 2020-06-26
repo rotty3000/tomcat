@@ -26,6 +26,11 @@ Provide-Capability: \
         version:Version=${jaspic.spec.version};\
         uses:='${packages;NAMED;jakarta.security.auth.message.*}'
 
+# JASPIC needs to load any
+# jakarta.security.auth.message.config.AuthConfigFactory implementation
+# specified via the "authconfigprovider.factory" system property.
+DynamicImport-Package: *
+
 -namesection: jakarta/security/auth/message*/;\
     Specification-Title=Jakarta Authentication SPI for Containers;\
     Specification-Version=${jaspic.spec.version};\

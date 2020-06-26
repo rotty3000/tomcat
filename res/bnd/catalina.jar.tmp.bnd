@@ -50,6 +50,24 @@ Export-Package: \
 -includepackage: \
     org.apache.naming.factory.webservices
 
+Import-Package: \
+    !jakarta.ejb.*,\
+    !jakarta.mail.*,\
+    !jakarta.persistence.*,\
+    !javax.wsdl.*,\
+    !javax.xml.rpc.*,\
+    !javax.xml.ws.*,\
+    *
+
+DynamicImport-Package: \
+    jakarta.ejb.*,\
+    jakarta.mail.*,\
+    jakarta.persistence.*,\
+    javax.wsdl.*,\
+    javax.xml.rpc.*,\
+    javax.xml.ws.*,\
+    *
+
 -jpms-module-info: \
     ${module.name};\
         access=32;\

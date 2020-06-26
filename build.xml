@@ -1621,6 +1621,15 @@
       <testcontainer instructions="run" />
   </target>
 
+  <target name="test-container-jpms" description="Runs the JUnit container test cases for JPMS deployment. Does not stop on errors."
+          depends="test-compile,deploy,cobertura-instrument">
+      <condition property="isModularJava">
+        <available classname="java.lang.Module" />
+      </condition>
+      <echo message="Skipping JPMS container tests on ${ant.java.version}" unless:set="isModularJava" />
+      <testcontainer instructions="jpms run" if:set="isModularJava" />
+  </target>
+
   <macrodef name="testcontainer"
             description="Tests the container started with specified instructions.">
     <attribute name="instructions"

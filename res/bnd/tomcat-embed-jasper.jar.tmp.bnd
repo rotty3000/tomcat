@@ -33,6 +33,13 @@ Export-Package: \
 -includepackage: \
     org.apache.jasper.resources
 
+Import-Package: \
+    !org.apache.tools.ant.*,\
+    *
+
+DynamicImport-Package: \
+    org.apache.tools.ant.*
+
 -includeresource.meta-inf: /META-INF/=../META-INF/jasper.jar/
 
 Provide-Capability: \

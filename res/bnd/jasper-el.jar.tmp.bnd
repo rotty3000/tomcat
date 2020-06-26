@@ -20,9 +20,7 @@ Bundle-SymbolicName: org.apache.tomcat-jasper-el
 Export-Package: \
     org.apache.el,\
     org.apache.el.lang,\
-    org.apache.el.parser
-
--includepackage: \
+    org.apache.el.parser,\
     org.apache.el.stream,\
     org.apache.el.util
 

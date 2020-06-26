@@ -156,6 +156,10 @@ PRGDIR=`dirname "$PRG"`
 # but allow them to be specified in setenv.sh, in rare case when it is needed.
 CLASSPATH=
 
+# Ensure that any user defined MODULES variables are not used on startup,
+# but allow them to be specified in setenv.sh, in rare case when it is needed.
+MODULES=
+
 if [ -r "$CATALINA_BASE/bin/setenv.sh" ]; then
   . "$CATALINA_BASE/bin/setenv.sh"
 elif [ -r "$CATALINA_HOME/bin/setenv.sh" ]; then
@@ -218,7 +222,44 @@ fi
 if [ ! -z "$CLASSPATH" ] ; then
   CLASSPATH="$CLASSPATH":
 fi
-CLASSPATH="$CLASSPATH""$CATALINA_HOME"/bin/bootstrap.jar
+
+# Setup Tomcat to run in JPMS mode
+if [ "$1" = "jpms" ] ; then
+  PATH_MODE="--module-path"
+
+  CLASSPATH="$CLASSPATH""$CATALINA_HOME/lib/"
+
+  if [ ! -z "$MODULES" ] ; then
+    MODULES="$MODULES",
+  fi
+
+  # TODO Make sure to add all the default modules
+  MODULES="$MODULES""org.apache.tomcat.catalina.ha"
+  MODULES="$MODULES"",org.apache.tomcat.jasper"
+  MODULES="$MODULES"",org.apache.tomcat.websocket"
+  MODULES="$MODULES"",jakarta.security.enterprise"
+  BOOTSTRAP="--add-modules $MODULES"
+  BOOTSTRAP="$BOOTSTRAP -m org.apache.tomcat.catalina/org.apache.catalina.startup.Bootstrap"
+
+  # Add the JAVA 9 specific start-up parameters required by Tomcat
+  JDK_JAVA_OPTIONS="$JDK_JAVA_OPTIONS --add-opens=java.base/java.lang=org.apache.tomcat.catalina"
+  JDK_JAVA_OPTIONS="$JDK_JAVA_OPTIONS --add-opens=java.base/java.io=org.apache.tomcat.catalina"
+  JDK_JAVA_OPTIONS="$JDK_JAVA_OPTIONS --add-opens=java.rmi/sun.rmi.transport=org.apache.tomcat.catalina"
+
+  shift
+else
+  PATH_MODE="-classpath"
+
+  CLASSPATH="$CLASSPATH""$CATALINA_HOME"/bin/bootstrap.jar
+  BOOTSTRAP="org.apache.catalina.startup.Bootstrap"
+
+  # Add the JAVA 9 specific start-up parameters required by Tomcat
+  JDK_JAVA_OPTIONS="$JDK_JAVA_OPTIONS --add-opens=java.base/java.lang=ALL-UNNAMED"
+  JDK_JAVA_OPTIONS="$JDK_JAVA_OPTIONS --add-opens=java.base/java.io=ALL-UNNAMED"
+  JDK_JAVA_OPTIONS="$JDK_JAVA_OPTIONS --add-opens=java.rmi/sun.rmi.transport=ALL-UNNAMED"
+fi
+
+export JDK_JAVA_OPTIONS
 
 if [ -z "$CATALINA_OUT" ] ; then
   CATALINA_OUT="$CATALINA_BASE"/logs/catalina.out
@@ -310,12 +351,6 @@ if [ "$USE_NOHUP" = "true" ]; then
     _NOHUP="nohup"
 fi
 
-# Add the JAVA 9 specific start-up parameters required by Tomcat
-JDK_JAVA_OPTIONS="$JDK_JAVA_OPTIONS --add-opens=java.base/java.lang=ALL-UNNAMED"
-JDK_JAVA_OPTIONS="$JDK_JAVA_OPTIONS --add-opens=java.base/java.io=ALL-UNNAMED"
-JDK_JAVA_OPTIONS="$JDK_JAVA_OPTIONS --add-opens=java.rmi/sun.rmi.transport=ALL-UNNAMED"
-export JDK_JAVA_OPTIONS
-
 # ----- Execute The Requested Command -----------------------------------------
 
 # Bugzilla 37848: only output this if we have a TTY
@@ -328,7 +363,11 @@ if [ $have_tty -eq 1 ]; then
   else
     echo "Using JRE_HOME:        $JRE_HOME"
   fi
-  echo "Using CLASSPATH:       $CLASSPATH"
+  if [ "$PATH_MODE" = "-classpath" ] ; then
+    echo "Using CLASSPATH:       $CLASSPATH"
+  else
+    echo "Using MODULEPATH:       $CLASSPATH"
+  fi
   if [ ! -z "$CATALINA_PID" ]; then
     echo "Using CATALINA_PID:    $CATALINA_PID"
   fi
@@ -368,23 +407,23 @@ if [ "$1" = "debug" ] ; then
       shift
       exec "$_RUNJDB" "$CATALINA_LOGGING_CONFIG" $LOGGING_MANAGER $JAVA_OPTS $CATALINA_OPTS \
         -D$ENDORSED_PROP="$JAVA_ENDORSED_DIRS" \
-        -classpath "$CLASSPATH" \
+        "$PATH_MODE" "$CLASSPATH" \
         -sourcepath "$CATALINA_HOME"/../../java \
         -Djava.security.manager \
         -Djava.security.policy=="$CATALINA_BASE"/conf/catalina.policy \
         -Dcatalina.base="$CATALINA_BASE" \
         -Dcatalina.home="$CATALINA_HOME" \
         -Djava.io.tmpdir="$CATALINA_TMPDIR" \
-        org.apache.catalina.startup.Bootstrap "$@" start
+        "$BOOTSTRAP" "$@" start
     else
       exec "$_RUNJDB" "$CATALINA_LOGGING_CONFIG" $LOGGING_MANAGER $JAVA_OPTS $CATALINA_OPTS \
         -D$ENDORSED_PROP="$JAVA_ENDORSED_DIRS" \
-        -classpath "$CLASSPATH" \
+        "$PATH_MODE" "$CLASSPATH" \
         -sourcepath "$CATALINA_HOME"/../../java \
         -Dcatalina.base="$CATALINA_BASE" \
         -Dcatalina.home="$CATALINA_HOME" \
         -Djava.io.tmpdir="$CATALINA_TMPDIR" \
-        org.apache.catalina.startup.Bootstrap "$@" start
+        "$BOOTSTRAP" "$@" start
     fi
   fi
 
@@ -398,21 +437,21 @@ elif [ "$1" = "run" ]; then
     shift
     eval exec "\"$_RUNJAVA\"" "\"$CATALINA_LOGGING_CONFIG\"" $LOGGING_MANAGER "$JAVA_OPTS" "$CATALINA_OPTS" \
       -D$ENDORSED_PROP="\"$JAVA_ENDORSED_DIRS\"" \
-      -classpath "\"$CLASSPATH\"" \
+      "$PATH_MODE" "\"$CLASSPATH\"" \
       -Djava.security.manager \
       -Djava.security.policy=="\"$CATALINA_BASE/conf/catalina.policy\"" \
       -Dcatalina.base="\"$CATALINA_BASE\"" \
       -Dcatalina.home="\"$CATALINA_HOME\"" \
       -Djava.io.tmpdir="\"$CATALINA_TMPDIR\"" \
-      org.apache.catalina.startup.Bootstrap "$@" start
+      "$BOOTSTRAP" "$@" start
   else
     eval exec "\"$_RUNJAVA\"" "\"$CATALINA_LOGGING_CONFIG\"" $LOGGING_MANAGER "$JAVA_OPTS" "$CATALINA_OPTS" \
       -D$ENDORSED_PROP="\"$JAVA_ENDORSED_DIRS\"" \
-      -classpath "\"$CLASSPATH\"" \
+      "$PATH_MODE" "\"$CLASSPATH\"" \
       -Dcatalina.base="\"$CATALINA_BASE\"" \
       -Dcatalina.home="\"$CATALINA_HOME\"" \
       -Djava.io.tmpdir="\"$CATALINA_TMPDIR\"" \
-      org.apache.catalina.startup.Bootstrap "$@" start
+      "$BOOTSTRAP" "$@" start
   fi
 
 elif [ "$1" = "start" ] ; then
@@ -479,23 +518,23 @@ elif [ "$1" = "start" ] ; then
     shift
     eval $_NOHUP "\"$_RUNJAVA\"" "\"$CATALINA_LOGGING_CONFIG\"" $LOGGING_MANAGER "$JAVA_OPTS" "$CATALINA_OPTS" \
       -D$ENDORSED_PROP="\"$JAVA_ENDORSED_DIRS\"" \
-      -classpath "\"$CLASSPATH\"" \
+      "$PATH_MODE" "\"$CLASSPATH\"" \
       -Djava.security.manager \
       -Djava.security.policy=="\"$CATALINA_BASE/conf/catalina.policy\"" \
       -Dcatalina.base="\"$CATALINA_BASE\"" \
       -Dcatalina.home="\"$CATALINA_HOME\"" \
       -Djava.io.tmpdir="\"$CATALINA_TMPDIR\"" \
-      org.apache.catalina.startup.Bootstrap "$@" start \
+      "$BOOTSTRAP" "$@" start \
       >> "$CATALINA_OUT" 2>&1 "&"
 
   else
     eval $_NOHUP "\"$_RUNJAVA\"" "\"$CATALINA_LOGGING_CONFIG\"" $LOGGING_MANAGER "$JAVA_OPTS" "$CATALINA_OPTS" \
       -D$ENDORSED_PROP="\"$JAVA_ENDORSED_DIRS\"" \
-      -classpath "\"$CLASSPATH\"" \
+      "$PATH_MODE" "\"$CLASSPATH\"" \
       -Dcatalina.base="\"$CATALINA_BASE\"" \
       -Dcatalina.home="\"$CATALINA_HOME\"" \
       -Djava.io.tmpdir="\"$CATALINA_TMPDIR\"" \
-      org.apache.catalina.startup.Bootstrap "$@" start \
+      "$BOOTSTRAP" "$@" start \
       >> "$CATALINA_OUT" 2>&1 "&"
 
   fi
@@ -544,11 +583,11 @@ elif [ "$1" = "stop" ] ; then
 
   eval "\"$_RUNJAVA\"" $LOGGING_MANAGER "$JAVA_OPTS" \
     -D$ENDORSED_PROP="\"$JAVA_ENDORSED_DIRS\"" \
-    -classpath "\"$CLASSPATH\"" \
+    "$PATH_MODE" "\"$CLASSPATH\"" \
     -Dcatalina.base="\"$CATALINA_BASE\"" \
     -Dcatalina.home="\"$CATALINA_HOME\"" \
     -Djava.io.tmpdir="\"$CATALINA_TMPDIR\"" \
-    org.apache.catalina.startup.Bootstrap "$@" stop
+    "$BOOTSTRAP" "$@" stop
 
   # stop failed. Shutdown port disabled? Try a normal kill.
   if [ $? != 0 ]; then
@@ -631,11 +670,11 @@ elif [ "$1" = "configtest" ] ; then
 
     eval "\"$_RUNJAVA\"" $LOGGING_MANAGER "$JAVA_OPTS" \
       -D$ENDORSED_PROP="\"$JAVA_ENDORSED_DIRS\"" \
-      -classpath "\"$CLASSPATH\"" \
+      "$PATH_MODE" "\"$CLASSPATH\"" \
       -Dcatalina.base="\"$CATALINA_BASE\"" \
       -Dcatalina.home="\"$CATALINA_HOME\"" \
       -Djava.io.tmpdir="\"$CATALINA_TMPDIR\"" \
-      org.apache.catalina.startup.Bootstrap configtest
+      "$BOOTSTRAP" configtest
     result=$?
     if [ $result -ne 0 ]; then
         echo "Configuration error detected!"
@@ -659,6 +698,7 @@ else
     echo "  debug             Start Catalina in a debugger"
     echo "  debug -security   Debug Catalina with a security manager"
   fi
+  echo "  [jpms] *          Start Catalina under JPMS (accompanied by other instructions)"
   echo "  jpda start        Start Catalina under JPDA debugger"
   echo "  run               Start Catalina in the current window"
   echo "  run -security     Start in the current window with security manager"

@@ -429,6 +429,7 @@ public class MemoryUserDatabase implements UserDatabase {
 
                 // Construct a digester to read the XML input file
                 Digester digester = new Digester();
+                digester.setUseContextClassLoader(true);
                 try {
                     digester.setFeature(
                             "http://apache.org/xml/features/allow-java-encodings", true);

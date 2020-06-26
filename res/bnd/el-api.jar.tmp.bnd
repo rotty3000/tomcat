@@ -25,6 +25,10 @@ Provide-Capability: \
         version:Version=${el.spec.version};\
         uses:='${packages;NAMED;jakarta.el.*}'
 
+# This is to support `jakarta.servlet.jsp.el.ScopedAttributeELResolver`
+DynamicImport-Package: \
+    jakarta.servlet.jsp.el
+
 -namesection: jakarta/el*/;\
     Specification-Title=Jakarta Expression Language;\
     Specification-Version=${el.spec.version};\

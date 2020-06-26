@@ -431,6 +431,7 @@ public class ContextConfig implements LifecycleListener {
      */
     protected Digester createContextDigester() {
         Digester digester = new Digester();
+        digester.setUseContextClassLoader(true);
         digester.setValidating(false);
         digester.setRulesValidation(true);
         Map<Class<?>, List<String>> fakeAttributes = new HashMap<>();

@@ -1,0 +1,64 @@
+# Licensed to the Apache Software Foundation (ASF) under one or more
+# contributor license agreements.  See the NOTICE file distributed with
+# this work for additional information regarding copyright ownership.
+# The ASF licenses this file to You under the Apache License, Version 2.0
+# (the "License"); you may not use this file except in compliance with
+# the License.  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+#-runjdb: 8000
+
+-runfw: org.apache.felix.framework
+-runrequires: \
+    osgi.identity;filter:='(osgi.identity=${project.artifactId})',\
+    osgi.identity;filter:='(osgi.identity=org.apache.tomcat-catalina-ha)',\
+    osgi.identity;filter:='(osgi.identity=org.apache.tomcat-jasper)',\
+    osgi.identity;filter:='(osgi.identity=org.apache.tomcat-websocket)'
+
+#	,\
+#	osgi.identity;filter:='(osgi.identity=org.apache.felix.gogo.command)',\
+#	osgi.identity;filter:='(osgi.identity=org.apache.felix.gogo.shell)'
+
+-runproperties: \
+    osgi.console=,\
+    catalina.base=${.}/../../output/build,\
+    catalina.home=${.}/../../output/build
+
+-runprogramargs: start
+
+-runsystempackages: \
+    sun.rmi.transport
+
+-runstartlevel: \
+    order=sortbynameversion,\
+    begin=-1
+
+-runbundles: \
+    org.apache.aries.spifly.dynamic.framework.extension;version='[1.3.0,1.3.1)',\
+    org.apache.tomcat-annotations-api;version='[10.0.0,10.0.1)',\
+    org.apache.tomcat-api;version='[10.0.0,10.0.1)',\
+    org.apache.tomcat-catalina;version='[10.0.0,10.0.1)',\
+    org.apache.tomcat-catalina-ha;version='[10.0.0,10.0.1)',\
+    org.apache.tomcat-coyote;version='[10.0.0,10.0.1)',\
+    org.apache.tomcat-el-api;version='[10.0.0,10.0.1)',\
+    org.apache.tomcat-jasper;version='[10.0.0,10.0.1)',\
+    org.apache.tomcat-jasper-el;version='[10.0.0,10.0.1)',\
+    org.apache.tomcat-jaspic-api;version='[10.0.0,10.0.1)',\
+    org.apache.tomcat-jni;version='[10.0.0,10.0.1)',\
+    org.apache.tomcat-jsp-api;version='[10.0.0,10.0.1)',\
+    org.apache.tomcat-juli;version='[10.0.0,10.0.1)',\
+    org.apache.tomcat-osgi-boot;version='[0.1.0,0.1.1)',\
+    org.apache.tomcat-servlet-api;version='[10.0.0,10.0.1)',\
+    org.apache.tomcat-tribes;version='[10.0.0,10.0.1)',\
+    org.apache.tomcat-util;version='[10.0.0,10.0.1)',\
+    org.apache.tomcat-util-scan;version='[10.0.0,10.0.1)',\
+    org.apache.tomcat-websocket;version='[10.0.0,10.0.1)',\
+    org.apache.tomcat-websocket-api;version='[10.0.0,10.0.1)',\
+    org.eclipse.jdt.core.compiler.batch;version='[3.21.0,3.21.1)'

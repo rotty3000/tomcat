@@ -20,10 +20,8 @@ Bundle-SymbolicName: org.apache.tomcat-embed-websocket
 Export-Package: \
     jakarta.websocket.*;version=${websocket.spec.version},\
     org.apache.tomcat.websocket,\
+    org.apache.tomcat.websocket.pojo,\
     org.apache.tomcat.websocket.server
-
--includepackage: \
-    org.apache.tomcat.websocket.pojo
 
 -includeresource.meta-inf: /META-INF/=../META-INF/tomcat-websocket.jar/
 

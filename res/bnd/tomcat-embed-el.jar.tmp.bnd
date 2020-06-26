@@ -21,11 +21,13 @@ Export-Package: \
     jakarta.el;version=${el.spec.version},\
     org.apache.el,\
     org.apache.el.lang,\
-    org.apache.el.parser
-
--includepackage: \
+    org.apache.el.parser,\
     org.apache.el.stream,\
     org.apache.el.util
+
+# This is to support `jakarta.servlet.jsp.el.ScopedAttributeELResolver`
+DynamicImport-Package: \
+    jakarta.servlet.jsp.el
 
 -includeresource.meta-inf: /META-INF/=../META-INF/jasper-el.jar/
 

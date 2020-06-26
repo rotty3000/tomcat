@@ -44,6 +44,7 @@ public class MbeansDescriptorsDigesterSource extends ModelerSource
     private static Digester createDigester() {
 
         Digester digester = new Digester();
+        digester.setUseContextClassLoader(true);
         digester.setNamespaceAware(false);
         digester.setValidating(false);
         URL url = Registry.getRegistry(null, null).getClass().getResource
